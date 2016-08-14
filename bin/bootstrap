@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+set -e
+set -x
+
+export DEBIAN_FRONTEND=noninteractive
+
+default-occidentalis()
+{
+  cat << EOF > /boot/occidentalis.txt
+# In order to use this file, you can copy it to /boot/occidentalis.txt:
+#
+#     sudo cp occidentalis_example.txt /boot/occidentalis.txt
+#
+# and change the options on each line.
+#
+# Lines with a leading "#" are comments.  Blank lines are ignored.
+
+# set hostname
+hostname=mystopia-rpi-XX
+
+# configure a wireless network
+#wifi_ssid=somewifinetwork
+#wifi_password=somepassword
+EOF
+}
+
+random-string()
+{
+    cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w ${1:-32} | head -n 1
+}
+
+# Adafruit-Occidentalis
+# =====================
+
+TRUST=1
+if [ $TRUST -eq 0 ]; then
+  sudo -s
+  echo "deb http://apt.adafruit.com/raspbian/ wheezy main" >> /etc/apt/sources.list
+  wget -O - -q https://apt.adafruit.com/apt.adafruit.com.gpg.key | apt-key add -
+  apt-get update
+  apt-get install occidentalis
+else
+  curl -SLs https://apt.adafruit.com/install | sudo bash
+fi
+
+OCCIDENTALIS=/boot/occidentalis.txt
+if [ ! -f $OCCIDENTALIS ]; then
+  # cp /usr/share/doc/occi/occidentalis_example.txt /boot/occidentalis.txt
+  default-occidentalis
+  echo "File ${OCCIDENTALIS} was created… edit it as needed"
+else
+  echo "File ${OCCIDENTALIS} already exists… skipping"
+fi
+
+occi
+
+# Regular updates and upgrades
+# ============================
+
+apt update && apt upgrade -y
+
+# Install additional software
+# ===========================
+
+apt install -y htop
+apt install -y supervisor
+apt install -y tmux
+
+# Summary
+# =======
+
+cat $OCCIDENTALIS
+echo "Hostname: $(hostname)"
+echo "All done!"
